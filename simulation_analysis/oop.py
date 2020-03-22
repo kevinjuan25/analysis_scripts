@@ -15,14 +15,6 @@ from scipy.special import sph_harm
 
 class orientational_op:
     def __init__(self, trj, frame, box_dim, bound, probe_vol):
-        """
-        Args:
-            trj (numpy array): Trajectory file processed into numpy array
-            frame (int): Relative trajectory frame number
-            box_dim (numpy array): Box dimension array of shape n_frames x 6
-            bound (float): Cut off radius in nm
-            probe_vol (numpy array): Array of particles within the probe volume
-        """
         self.trj = trj
         self.frame = frame
         self.box_dim = box_dim
@@ -53,33 +45,25 @@ class orientational_op:
             nn_dist = nn_dist_new
         return nn_idx, nn_dist
 
-    def nn_coords(self, ref_atom):
-        nn_idx, _ = self.nn()
-        coords = self.trj[self.frame, nn_idx[ref_atom]]
-        return coords
-
     def pbc(self, dist):
         max_len = max(self.box_dim[self.frame, :3])
         return np.round(dist / max_len) * max_len
 
-    def azimuth(self, ref_atom):
-        dx = self.nn_coords(ref_atom)[:, 0] - self.trj[self.frame, self.probe_vol[ref_atom], 0]
-        dy = self.nn_coords(ref_atom)[:, 1] - self.trj[self.frame, self.probe_vol[ref_atom], 1]
-        dx -= self.pbc(dx)
-        dy -= self.pbc(dy)
-        return np.arctan2(dy, dx) + np.pi
-
-    def planar(self, ref_atom):
-        dz = self.nn_coords(ref_atom)[:, 2] - self.trj[self.frame, self.probe_vol[ref_atom], 2]
-        dz -= self.pbc(dz)
-        _, nn_dist = self.nn()
-        return np.arccos(dz / nn_dist[ref_atom])
+    def angles_coords(self, ref_atom):
+        nn_idx, nn_dist = self.nn()
+        coords = self.trj[self.frame, nn_idx[ref_atom]]
+        dr = coords - self.trj[self.frame, self.probe_vol[ref_atom]]
+        dr -= self.pbc(dr)
+        azimuth = np.arctan2(dr[:, 1], dr[:, 0]) + np.pi
+        planar = np.arccos(dr[:, 2] / nn_dist[ref_atom])
+        return azimuth, planar, coords
 
     def q_lm(self, l, ref_atom):
-        N_nn = self.nn_coords(ref_atom).shape[0]
+        azimuth, planar, nn_coords = self.angles_coords(ref_atom)
+        N_nn = len(nn_coords)
         q_lm = []
         for m in range(-l, l + 1):
-            q_lm.append(sph_harm(m, l, self.azimuth(ref_atom), self.planar(ref_atom)).sum() / N_nn)
+            q_lm.append(sph_harm(m, l, azimuth, planar).sum() / N_nn)
         return np.array(q_lm)
 
     def Q_lm(self, l):
