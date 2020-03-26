@@ -31,7 +31,8 @@ class orientational_op:
         nn_idx = np.array([np.array(x) for x in nn_idx])
         nn_dist = search.search(self.trj[self.frame, self.probe_vol]).get_distances()
         nn_dist = np.array([np.array(x) for x in nn_dist])
-        nn_idx, nn_dist = self.nn_clean(nn_idx, nn_dist)
+        if self.qBar is False:
+            nn_idx, nn_dist = self.nn_clean(nn_idx, nn_dist)
 
         # Save first coordination shell
         self.shell_1_idx = nn_idx
@@ -131,7 +132,7 @@ class orientational_op:
         qBar_l_i = prefactor * np.sqrt(np.sum(np.abs(qBar_lm_i) ** 2, axis=1))
         return qBar_l_i
 
-    def qBar_l_int(self, l):
+    def q_l(self, l):
         qBar_l_i = self.qBar_l(l)
         N_v = len(qBar_l_i)
         return qBar_l_i.sum() / N_v
