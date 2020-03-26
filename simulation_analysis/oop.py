@@ -132,7 +132,7 @@ class orientational_op:
         qBar_l_i = prefactor * np.sqrt(np.sum(np.abs(qBar_lm_i) ** 2, axis=1))
         return qBar_l_i
 
-    def q_l(self, l):
+    def qBar_l_int(self, l):
         qBar_l_i = self.qBar_l(l)
         N_v = len(qBar_l_i)
         return qBar_l_i.sum() / N_v
